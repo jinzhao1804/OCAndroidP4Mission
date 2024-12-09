@@ -34,14 +34,15 @@ class HomeActivity : AppCompatActivity()
    * A callback for the result of starting the TransferActivity.
    */
   private val startTransferActivityForResult =
-    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
       if (result.resultCode == Activity.RESULT_OK) {
-        val updatedBalance = result.data?.getDoubleExtra("updatedBalance", 0.0) ?: 0.0
-        // Update the balance UI with the new value
-        binding.balance.text = "${updatedBalance}€"  // Assuming you display the balance with a currency symbol
+        val updatedBalance = result.data?.getStringExtra("updatedBalance")
+        if (updatedBalance != null) {
+          // Update the balance UI
+          binding.balance.text = updatedBalance
+        }
       }
     }
-
   override fun onCreate(savedInstanceState: Bundle?)
   {
     super.onCreate(savedInstanceState)
@@ -63,6 +64,8 @@ class HomeActivity : AppCompatActivity()
     }
 
     transfer.setOnClickListener {
+
+
       startTransferActivityForResult.launch(
         Intent(this@HomeActivity, TransferActivity::class.java).putExtra("currentUser",
           extras?.getString("currentUser").toString())
