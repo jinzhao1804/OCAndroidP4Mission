@@ -1,5 +1,7 @@
 package com.aura.ui.transfer
 
+
+import TransferViewModel
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -8,8 +10,10 @@ import android.text.TextWatcher
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import com.aura.databinding.ActivityTransferBinding
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class TransferActivity : AppCompatActivity() {
 
@@ -28,28 +32,50 @@ class TransferActivity : AppCompatActivity() {
     val loadingIndicator = binding.loading
 
     // Observe the ViewModel for button enabling
-    transferViewModel.isButtonEnabled.observe(this, Observer { isEnabled ->
-      transferButton.isEnabled = isEnabled
-    })
+    lifecycleScope.launch {
+      transferViewModel.isButtonEnabled.collect { isEnabled ->
+        transferButton.isEnabled = isEnabled
+      }
+    }
+
+    // Observe the ViewModel for the loading state
+    lifecycleScope.launch {
+      transferViewModel.isLoading.collect { isLoading ->
+        loadingIndicator.visibility = if (isLoading) android.view.View.VISIBLE else android.view.View.GONE
+      }
+    }
 
     // Observe the ViewModel for transfer result (success or failure)
-    transferViewModel.transferResult.observe(this, Observer { isSuccess ->
-      if (isSuccess) {
-        // Transfer successful
-        Toast.makeText(this@TransferActivity, "Transfer successful", Toast.LENGTH_LONG).show()
+    lifecycleScope.launch {
+      transferViewModel.transferResult.collect { isSuccess ->
+        if (isSuccess != null) {
+          if (isSuccess) {
+            // Transfer successful
+            Toast.makeText(this@TransferActivity, "Transfer successful", Toast.LENGTH_LONG).show()
 
-        // Now observe the updated balance from ViewModel
-        transferViewModel.updatedBalance.observe(this, Observer { updatedBalance ->
+            // Fetch updated balance after successful transfer
+            transferViewModel.fetchUpdatedBalance(
+              intent.extras?.getString("currentUser") ?: ""
+            )
+          } else {
+            // Transfer failed
+            Toast.makeText(this@TransferActivity, "Transfer failed", Toast.LENGTH_LONG).show()
+          }
+        }
+      }
+    }
+
+    // Observe the updated balance from ViewModel
+    lifecycleScope.launch {
+      transferViewModel.updatedBalance.collect { updatedBalance ->
+        updatedBalance?.let {
           val resultIntent = Intent()
-          resultIntent.putExtra("updatedBalance", updatedBalance)
+          resultIntent.putExtra("updatedBalance", it)
           setResult(Activity.RESULT_OK, resultIntent) // Pass updated balance to HomeActivity
           finish() // Finish the activity and go back to HomeActivity
-        })
-      } else {
-        // Transfer failed
-        Toast.makeText(this@TransferActivity, "Transfer failed", Toast.LENGTH_LONG).show()
+        }
       }
-    })
+    }
 
     // Add TextWatchers to recipient and amount fields
     recipientEditText.addTextChangedListener(object : TextWatcher {
