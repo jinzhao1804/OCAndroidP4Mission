@@ -3,9 +3,13 @@ package com.aura.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.viewModels  // For Activity
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
+import androidx.lifecycle.lifecycleScope
 import com.aura.databinding.ActivityLoginBinding
 import com.aura.ui.home.HomeActivity
+import kotlinx.coroutines.launch
 
 /**
  * The login activity for the app.
@@ -17,6 +21,8 @@ class LoginActivity : AppCompatActivity()
    * The binding for the login layout.
    */
   private lateinit var binding: ActivityLoginBinding
+  private val viewModel: LoginViewModel by viewModels()
+
 
   override fun onCreate(savedInstanceState: Bundle?)
   {
@@ -28,6 +34,18 @@ class LoginActivity : AppCompatActivity()
     val login = binding.login
     val loading = binding.loading
 
+    // Collect the form validation state from the StateFlow
+    collectFormState()
+
+    // Set up listeners for the form fields
+    binding.identifier.addTextChangedListener {
+      checkFormState()
+    }
+    binding.password.addTextChangedListener {
+      checkFormState()
+    }
+
+
     login.setOnClickListener {
       loading.visibility = View.VISIBLE
 
@@ -36,6 +54,24 @@ class LoginActivity : AppCompatActivity()
 
       finish()
     }
+  }
+
+  // Function to collect the form state and enable/disable the login button
+  private fun collectFormState() {
+    lifecycleScope.launch {
+      viewModel.isFormValid.collect { isValid ->
+        // Enable or disable the login button based on the form validity
+        binding.login.isEnabled = isValid
+      }
+    }
+  }
+  // Function to verify the form state whenever the text changes
+  private fun checkFormState() {
+    val id = binding.identifier.text.toString()
+    val pwd = binding.password.text.toString()
+
+    // Verify the form state in the ViewModel
+    viewModel.verifyFormState(id, pwd)
   }
 
 }
