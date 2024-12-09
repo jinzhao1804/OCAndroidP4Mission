@@ -1,6 +1,7 @@
 package com.aura.ui.transfer
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -59,9 +60,18 @@ class TransferActivity : AppCompatActivity() {
         return@setOnClickListener
       }
 
-      val transferRequest = TransferRequest(currentUser, recipient, amount)
-      Log.e("TransferRequest", "Sending request: $transferRequest")
+      // Correctly extract the currentUser as a string from the Bundle
+      val extras = intent.extras
+      val currentUser = extras?.getString("currentUser") ?: ""
 
+      // Make sure that currentUser is not empty
+      if (currentUser.isEmpty()) {
+        Toast.makeText(this@TransferActivity, "User ID is missing", Toast.LENGTH_LONG).show()
+        return@setOnClickListener
+      }
+
+      // Now create the TransferRequest with correct data
+      val transferRequest = TransferRequest(currentUser, recipient, amount)
 
       lifecycleScope.launch {
         try {
@@ -73,6 +83,17 @@ class TransferActivity : AppCompatActivity() {
           // Handle server response
           if (response.result) {
             Toast.makeText(this@TransferActivity, "Transfer successful", Toast.LENGTH_LONG).show()
+
+            // Fetch the updated balance
+            val updatedBalance = fetchUpdatedBalance(currentUser)  // Fetch the updated balance
+
+            // Pass the updated balance back to HomeActivity
+            val resultIntent = Intent()
+            resultIntent.putExtra("updatedBalance", updatedBalance)
+            setResult(Activity.RESULT_OK, resultIntent)
+
+            // Finish the current activity and return to HomeActivity
+            finish()
           } else {
             Toast.makeText(this@TransferActivity, "Transfer failed", Toast.LENGTH_LONG).show()
           }
@@ -90,12 +111,20 @@ class TransferActivity : AppCompatActivity() {
           Log.e("TransferActivity", "General Error: ${e.message}", e)
         } finally {
           loadingIndicator.visibility = View.GONE
-          setResult(Activity.RESULT_OK)
-          finish()
         }
       }
-
     }
 
+  }
+  // Method to fetch updated balance after transfer
+  private suspend fun fetchUpdatedBalance(currentUser: String): Double {
+    return try {
+      // Fetch the updated balance from the server (use appropriate API endpoint)
+      val accountResponse = RetrofitClient.instance.create(ApiService::class.java).getAccount(currentUser)
+      accountResponse[0].balance // Assuming balance is in the first account response
+    } catch (e: Exception) {
+      Log.e("TransferActivity", "Error fetching balance: ${e.message}")
+      0.0  // If error occurs, return 0.0
+    }
   }
 }

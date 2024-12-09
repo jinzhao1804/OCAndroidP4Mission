@@ -1,5 +1,6 @@
 package com.aura.ui.home
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -34,7 +35,11 @@ class HomeActivity : AppCompatActivity()
    */
   private val startTransferActivityForResult =
     registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-      //TODO
+      if (result.resultCode == Activity.RESULT_OK) {
+        val updatedBalance = result.data?.getDoubleExtra("updatedBalance", 0.0) ?: 0.0
+        // Update the balance UI with the new value
+        binding.balance.text = "${updatedBalance}€"  // Assuming you display the balance with a currency symbol
+      }
     }
 
   override fun onCreate(savedInstanceState: Bundle?)
