@@ -2,8 +2,8 @@ package com.aura.ui.login
 
 import androidx.lifecycle.ViewModel
 import com.aura.data.model.ApiService
-import com.aura.data.model.LoginRequest
-import com.aura.data.model.LoginResponse
+import com.aura.data.model.login.LoginRequest
+import com.aura.data.model.login.LoginResponse
 import com.aura.data.model.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

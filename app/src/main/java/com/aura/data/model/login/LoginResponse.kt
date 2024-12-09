@@ -1,4 +1,4 @@
-package com.aura.data.model
+package com.aura.data.model.login
 
 // LoginResponse.kt
 data class LoginResponse(

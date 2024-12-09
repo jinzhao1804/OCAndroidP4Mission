@@ -58,7 +58,10 @@ class HomeActivity : AppCompatActivity()
     }
 
     transfer.setOnClickListener {
-      startTransferActivityForResult.launch(Intent(this@HomeActivity, TransferActivity::class.java))
+      startTransferActivityForResult.launch(
+        Intent(this@HomeActivity, TransferActivity::class.java).putExtra("currentUser",
+          extras?.getString("currentUser").toString())
+      )
     }
   }
 

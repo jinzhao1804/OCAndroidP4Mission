@@ -4,6 +4,8 @@ package com.aura.data.model
 import com.aura.data.model.transfer.TransferRequest
 import com.aura.data.model.transfer.TransferResponse
 import com.aura.data.model.account.AccountResponse
+import com.aura.data.model.login.LoginRequest
+import com.aura.data.model.login.LoginResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
