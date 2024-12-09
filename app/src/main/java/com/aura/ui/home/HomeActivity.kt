@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +19,7 @@ import com.aura.databinding.ActivityHomeBinding
 import com.aura.ui.login.LoginActivity
 import com.aura.ui.transfer.TransferActivity
 import kotlinx.coroutines.launch
+
 
 /**
  * The home activity for the app.
@@ -55,6 +57,12 @@ class HomeActivity : AppCompatActivity()
 
     //balance.text = "2654,54€"
 
+    val reload = binding.reloadButton
+    reload.setOnClickListener {
+      startActivity(Intent(this, LoginActivity::class.java))
+      finish() // Optionally finish the current activity if you want to navigate away
+    }
+
     val extras = intent.extras
     if (extras != null) {
       val value = extras.getString("currentUser")
@@ -90,8 +98,14 @@ class HomeActivity : AppCompatActivity()
           // Update the UI with the account details
           binding.balance.text = "${accountResponse.balance}€"  // Display the balance
           Toast.makeText(this@HomeActivity, "Amount fetched", Toast.LENGTH_LONG).show()
+
+          // Hide the reload button as the fetch was successful
+          binding.reloadButton.visibility = View.GONE
         } else {
           Toast.makeText(this@HomeActivity, "No account found", Toast.LENGTH_LONG).show()
+
+          // Show the reload button if fetch fails
+          binding.reloadButton.visibility = View.VISIBLE
         }
       } catch (e: Exception) {
         // Handle errors (e.g., network errors)
@@ -101,9 +115,13 @@ class HomeActivity : AppCompatActivity()
           Toast.LENGTH_LONG
         ).show()
         Log.e("fetchAccountData", "Error: ${e.message}")
+
+        // Show the reload button if there is an error
+        binding.reloadButton.visibility = View.VISIBLE
       }
     }
   }
+
 
   override fun onCreateOptionsMenu(menu: Menu?): Boolean
   {
