@@ -66,6 +66,7 @@ class LoginActivity : AppCompatActivity()
           if (response.granted) {
             // If login is successful, navigate to the HomeActivity
             val intent = Intent(this@LoginActivity, HomeActivity::class.java)
+            intent.putExtra("currentUser",identifier);
             startActivity(intent)
             finish()
           } else {
