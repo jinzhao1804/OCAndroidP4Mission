@@ -1,3 +1,4 @@
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aura.data.model.ApiService
@@ -36,8 +37,12 @@ class TransferViewModel : ViewModel() {
 
                 if (response.result) {
                     _transferResult.value = true
+                    Log.d("TransferViewModelTest", "Transfer Result: ${transferResult.value}")
+
                 } else {
                     _transferResult.value = false
+                    Log.d("TransferViewModelTest", "Transfer Result: ${transferResult.value}")
+
                 }
 
             } catch (e: HttpException) {
