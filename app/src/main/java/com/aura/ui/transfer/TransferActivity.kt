@@ -51,15 +51,14 @@ class TransferActivity : AppCompatActivity() {
         if (isSuccess != null) {
           if (isSuccess) {
             // Transfer successful
-            Toast.makeText(this@TransferActivity, "Transfer successful", Toast.LENGTH_LONG).show()
-
+            showToast("Transfer successful")
             // Fetch updated balance after successful transfer
             transferViewModel.fetchUpdatedBalance(
               intent.extras?.getString("currentUser") ?: ""
             )
           } else {
             // Transfer failed
-            Toast.makeText(this@TransferActivity, "Transfer failed", Toast.LENGTH_LONG).show()
+            showToast("Transfer failed")
           }
         }
       }
@@ -101,24 +100,28 @@ class TransferActivity : AppCompatActivity() {
 
       // Validate fields before making the transfer
       if (recipient.isEmpty() || amountString.isEmpty()) {
-        Toast.makeText(this@TransferActivity, "Please enter both recipient and amount", Toast.LENGTH_LONG).show()
+        showToast("Please enter both recipient and amount")
         return@setOnClickListener
       }
 
       val amount = amountString.toDoubleOrNull()
       if (amount == null || amount <= 0.0) {
-        Toast.makeText(this@TransferActivity, "Please enter a valid amount", Toast.LENGTH_LONG).show()
+        showToast("Please enter a valid amount")
         return@setOnClickListener
       }
 
       val currentUser = intent.extras?.getString("currentUser") ?: ""
       if (currentUser.isEmpty()) {
-        Toast.makeText(this@TransferActivity, "User ID is missing", Toast.LENGTH_LONG).show()
+        showToast("User ID is missing")
         return@setOnClickListener
       }
 
       // Call the ViewModel's transfer function
       transferViewModel.transfer(currentUser, recipient, amount)
     }
+  }
+
+  fun showToast(text: String){
+    Toast.makeText(this@TransferActivity, text, Toast.LENGTH_LONG).show()
   }
 }
