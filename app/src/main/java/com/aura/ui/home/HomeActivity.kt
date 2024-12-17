@@ -52,7 +52,7 @@ class HomeActivity : AppCompatActivity()
     binding = ActivityHomeBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
-    val balance = binding.balance
+
     val transfer = binding.transfer
 
     //balance.text = "2654,54€"
@@ -72,8 +72,6 @@ class HomeActivity : AppCompatActivity()
     }
 
     transfer.setOnClickListener {
-
-
       startTransferActivityForResult.launch(
         Intent(this@HomeActivity, TransferActivity::class.java).putExtra("currentUser",
           extras?.getString("currentUser").toString())
@@ -139,7 +137,8 @@ class HomeActivity : AppCompatActivity()
         finish()
         true
       }
-      else            -> super.onOptionsItemSelected(item)
+      else
+      -> super.onOptionsItemSelected(item)
     }
   }
 
