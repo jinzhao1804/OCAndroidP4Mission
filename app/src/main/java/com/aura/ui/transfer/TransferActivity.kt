@@ -27,13 +27,14 @@ class TransferActivity : AppCompatActivity() {
 
     setupUI()
     observeViewModel()
+    binding.transfer.isEnabled = false
   }
 
   // Setup UI components and event listeners
   private fun setupUI() {
     setupTextWatchers()
     setupTransferButton()
-    binding.transfer.isEnabled = false
+
   }
 
   // Observing ViewModel states
@@ -135,6 +136,7 @@ class TransferActivity : AppCompatActivity() {
   private fun validateTransferInput(recipient: String, amount: String): Boolean {
     when {
       recipient.isEmpty() || amount.isEmpty() -> {
+        binding.transfer.isEnabled = false
         showToast("Please enter both recipient and amount")
         return false
       }
