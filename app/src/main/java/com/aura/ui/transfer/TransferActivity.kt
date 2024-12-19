@@ -9,6 +9,7 @@ import android.text.TextWatcher
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.aura.databinding.ActivityTransferBinding
 import kotlinx.coroutines.flow.collect
@@ -27,6 +28,7 @@ class TransferActivity : AppCompatActivity() {
 
     setupUI()
     observeViewModel()
+    // The login button is disabled if the recipient field or the amount field is empty.
     binding.transfer.isEnabled = false
   }
 
@@ -90,18 +92,14 @@ class TransferActivity : AppCompatActivity() {
 
   // Setup TextWatchers for recipient and amount fields
   private fun setupTextWatchers() {
-    binding.recipient.addTextChangedListener(createTextWatcher())
-    binding.amount.addTextChangedListener(createTextWatcher())
-  }
 
-  // Create a TextWatcher that validates the fields
-  private fun createTextWatcher(): TextWatcher {
-    return object : TextWatcher {
-      override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
-      override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {
-        validateFields()
-      }
-      override fun afterTextChanged(editable: Editable?) {}
+
+
+    binding.recipient.addTextChangedListener {
+      validateFields()
+    }
+    binding.amount.addTextChangedListener {
+      validateFields()
     }
   }
 
@@ -110,9 +108,6 @@ class TransferActivity : AppCompatActivity() {
   private fun validateFields() {
     val recipient = binding.recipient.text.toString()
     val amount = binding.amount.text.toString()
-    if (recipient.isEmpty() || amount.isEmpty()){
-      binding.transfer.isEnabled = false
-    }
     transferViewModel.validateFields(recipient, amount)
   }
 
