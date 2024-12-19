@@ -15,131 +15,140 @@ import androidx.lifecycle.lifecycleScope
 import com.aura.R
 import com.aura.data.model.ApiService
 import com.aura.data.model.RetrofitClient
+import com.aura.data.model.account.AccountResponse
 import com.aura.databinding.ActivityHomeBinding
 import com.aura.ui.login.LoginActivity
 import com.aura.ui.transfer.TransferActivity
 import kotlinx.coroutines.launch
 
+class HomeActivity : AppCompatActivity() {
 
-/**
- * The home activity for the app.
- */
-class HomeActivity : AppCompatActivity()
-{
-
-  /**
-   * The binding for the home layout.
-   */
   private lateinit var binding: ActivityHomeBinding
 
-  /**
-   * A callback for the result of starting the TransferActivity.
-   */
   private val startTransferActivityForResult =
     registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-      if (result.resultCode == Activity.RESULT_OK) {
-        val updatedBalance = result.data?.getStringExtra("updatedBalance")
-        if (updatedBalance != null) {
-          // Update the balance UI
-          binding.balance.text = updatedBalance
-        }
-      }
+      handleTransferResult(result)
     }
-  override fun onCreate(savedInstanceState: Bundle?)
-  {
-    super.onCreate(savedInstanceState)
 
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
     binding = ActivityHomeBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
+    setupUI()
+    handleIntentExtras()
+  }
 
-    val transfer = binding.transfer
+  // Setup UI components and their event listeners
+  private fun setupUI() {
+    setupReloadButton()
+    setupTransferButton()
+  }
 
-    //balance.text = "2654,54€"
-
-    val reload = binding.reloadButton
-    reload.setOnClickListener {
-      startActivity(Intent(this, LoginActivity::class.java))
-      finish() // Optionally finish the current activity if you want to navigate away
+  // Setup the reload button
+  private fun setupReloadButton() {
+    binding.reloadButton.setOnClickListener {
+      reloadActivity()
     }
+  }
 
-    val extras = intent.extras
-    if (extras != null) {
-      val value = extras.getString("currentUser")
-      //The key argument here must match that used in the other activity
+  // Reload the activity (start LoginActivity)
+  private fun reloadActivity() {
+    startActivity(Intent(this, LoginActivity::class.java))
+    finish()
+  }
 
-      fetchAccountData(value.toString())
-    }
-
-    transfer.setOnClickListener {
+  // Setup the transfer button
+  private fun setupTransferButton() {
+    binding.transfer.setOnClickListener {
       startTransferActivityForResult.launch(
-        Intent(this@HomeActivity, TransferActivity::class.java).putExtra("currentUser",
-          extras?.getString("currentUser").toString())
+        Intent(this@HomeActivity, TransferActivity::class.java).apply {
+          putExtra("currentUser", intent.extras?.getString("currentUser"))
+        }
       )
     }
   }
 
+  // Handle the intent extras to fetch the user ID and account data
+  private fun handleIntentExtras() {
+    val extras = intent.extras
+    val userId = extras?.getString("currentUser") ?: return
+    fetchAccountData(userId)
+  }
+
+  // Fetch the account data for a given user
   private fun fetchAccountData(userId: String) {
     lifecycleScope.launch {
       try {
-        // Make the API call to fetch account data
         val accountResponseList = RetrofitClient.instance.create(ApiService::class.java)
           .getAccount(userId)
 
-        // Check if the accountResponseList is not empty
         if (accountResponseList.isNotEmpty()) {
-          val accountResponse = accountResponseList[0]  // Get the first account in the list
-
-          // Log the response to verify its structure
-          Log.d("fetchAccountData", "Account Response: $accountResponse")
-
-          // Update the UI with the account details
-          binding.balance.text = "${accountResponse.balance}€"  // Display the balance
-          Toast.makeText(this@HomeActivity, "Amount fetched", Toast.LENGTH_LONG).show()
-
-          // Hide the reload button as the fetch was successful
-          binding.reloadButton.visibility = View.GONE
+          handleAccountResponse(accountResponseList[0])
         } else {
-          Toast.makeText(this@HomeActivity, "No account found", Toast.LENGTH_LONG).show()
-
-          // Show the reload button if fetch fails
-          binding.reloadButton.visibility = View.VISIBLE
+          showToast("No account found")
+          showReloadButton()
         }
       } catch (e: Exception) {
-        // Handle errors (e.g., network errors)
-        Toast.makeText(
-          this@HomeActivity,
-          "Error fetching account data: ${e.message}",
-          Toast.LENGTH_LONG
-        ).show()
-        Log.e("fetchAccountData", "Error: ${e.message}")
-
-        // Show the reload button if there is an error
-        binding.reloadButton.visibility = View.VISIBLE
+        handleErrorFetchingData(e)
       }
     }
   }
 
+  // Handle the API response when account data is fetched successfully
+  private fun handleAccountResponse(accountResponse: AccountResponse) {
+    Log.d("fetchAccountData", "Account Response: $accountResponse")
+    binding.balance.text = "${accountResponse.balance}€"
+    showToast("Amount fetched")
+    hideReloadButton()
+  }
 
-  override fun onCreateOptionsMenu(menu: Menu?): Boolean
-  {
+  // Show the reload button
+  private fun showReloadButton() {
+    binding.reloadButton.visibility = View.VISIBLE
+  }
+
+  // Hide the reload button
+  private fun hideReloadButton() {
+    binding.reloadButton.visibility = View.GONE
+  }
+
+  // Show a toast message
+  private fun showToast(message: String) {
+    Toast.makeText(this@HomeActivity, message, Toast.LENGTH_LONG).show()
+  }
+
+  // Handle errors when fetching account data
+  private fun handleErrorFetchingData(exception: Exception) {
+    Log.e("fetchAccountData", "Error: ${exception.message}")
+    showToast("Error fetching account data: ${exception.message}")
+    showReloadButton()
+  }
+
+  // Handle the result from the TransferActivity
+  private fun handleTransferResult(result: ActivityResult) {
+    if (result.resultCode == Activity.RESULT_OK) {
+      val updatedBalance = result.data?.getStringExtra("updatedBalance")
+      updatedBalance?.let {
+        binding.balance.text = it
+      }
+    }
+  }
+
+  // Inflate the options menu
+  override fun onCreateOptionsMenu(menu: Menu?): Boolean {
     menuInflater.inflate(R.menu.home_menu, menu)
     return true
   }
 
-  override fun onOptionsItemSelected(item: MenuItem): Boolean
-  {
-    return when (item.itemId)
-    {
-      R.id.disconnect ->
-      {
-        startActivity(Intent(this@HomeActivity, LoginActivity::class.java))
-        finish()
+  // Handle options menu item selections
+  override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    return when (item.itemId) {
+      R.id.disconnect -> {
+        reloadActivity()
         true
       }
-      else
-      -> super.onOptionsItemSelected(item)
+      else -> super.onOptionsItemSelected(item)
     }
   }
-
 }

@@ -23,35 +23,20 @@ class LoginActivity : AppCompatActivity() {
     binding = ActivityLoginBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
-    // Collect the form state and loading state from the ViewModel
-    collectFormState()
-    collectLoadingState()
-
-    // Set up listeners for the form fields
+    setupObservers()
     setupTextWatchers()
-
-    // Observe the ViewModel's state to navigate to HomeActivity when login is successful
-    observeNavigateToHome()
-
-    // Set up the login button click listener
-    binding.login.setOnClickListener {
-      val identifier = binding.identifier.text.toString()
-      val password = binding.password.text.toString()
-
-      // Perform login operation
-      lifecycleScope.launch {
-        try {
-          viewModel.login(identifier, password)
-        } catch (e: Exception) {
-          // Show error if login fails
-          Toast.makeText(this@LoginActivity, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-      }
-    }
+    setupLoginButton()
   }
 
-  // Function to observe the form state (enable/disable login button)
-  private fun collectFormState() {
+  // Function to setup all observers
+  private fun setupObservers() {
+    observeFormState()
+    observeLoadingState()
+    observeNavigateToHome()
+  }
+
+  // Function to observe form state (enable/disable login button)
+  private fun observeFormState() {
     lifecycleScope.launch {
       viewModel.isFormValid.collect { isValid ->
         binding.login.isEnabled = isValid
@@ -60,10 +45,21 @@ class LoginActivity : AppCompatActivity() {
   }
 
   // Function to observe loading state and show/hide the loading indicator
-  private fun collectLoadingState() {
+  private fun observeLoadingState() {
     lifecycleScope.launch {
       viewModel.isLoading.collect { isLoading ->
         binding.loading.visibility = if (isLoading) View.VISIBLE else View.GONE
+      }
+    }
+  }
+
+  // Function to observe the navigateToHome LiveData and handle navigation
+  private fun observeNavigateToHome() {
+    lifecycleScope.launch {
+      viewModel.navigateToHome.collect { identifier ->
+        identifier?.let {
+          navigateToHomeActivity(it)
+        }
       }
     }
   }
@@ -73,7 +69,6 @@ class LoginActivity : AppCompatActivity() {
     binding.identifier.addTextChangedListener {
       checkFormState()
     }
-
     binding.password.addTextChangedListener {
       checkFormState()
     }
@@ -83,22 +78,33 @@ class LoginActivity : AppCompatActivity() {
   private fun checkFormState() {
     val id = binding.identifier.text.toString()
     val pwd = binding.password.text.toString()
-
     viewModel.verifyFormState(id, pwd)
   }
 
-  // Function to observe the navigateToHome LiveData and handle navigation
-  private fun observeNavigateToHome() {
+  // Function to set up the login button click listener
+  private fun setupLoginButton() {
+    binding.login.setOnClickListener {
+      val identifier = binding.identifier.text.toString()
+      val password = binding.password.text.toString()
+
+      // Perform login operation
+      loginUser(identifier, password)
+    }
+  }
+
+  // Function to perform the login operation
+  private fun loginUser(identifier: String, password: String) {
     lifecycleScope.launch {
-      viewModel.navigateToHome.collect { identifier ->
-        if (identifier != null) {
-          navigateToHomeActivity(identifier)  // Navigate to HomeActivity with the identifier
-        }
+      try {
+        viewModel.login(identifier, password)
+      } catch (e: Exception) {
+        // Show error if login fails
+        Toast.makeText(this@LoginActivity, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
       }
     }
   }
 
-  // Function to navigate to HomeActivity
+  // Function to navigate to HomeActivity with the identifier
   private fun navigateToHomeActivity(identifier: String) {
     val intent = Intent(this, HomeActivity::class.java)
     intent.putExtra("currentUser", identifier)
