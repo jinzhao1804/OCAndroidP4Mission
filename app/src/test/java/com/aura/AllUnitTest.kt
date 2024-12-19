@@ -23,11 +23,8 @@ class ViewModelTest {
   @get:Rule
   val instantExecutorRule = InstantTaskExecutorRule()
   private lateinit var transferViewModel: TransferViewModel
-
-
   private lateinit var viewModel: LoginViewModel
   private val apiService = mockk<ApiService>()
-  private val retrofitClient = mockk<RetrofitClient>()
   private val dispatcher = StandardTestDispatcher()
 
   @Before
