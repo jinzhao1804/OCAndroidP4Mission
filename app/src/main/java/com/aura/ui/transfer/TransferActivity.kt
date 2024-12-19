@@ -33,6 +33,7 @@ class TransferActivity : AppCompatActivity() {
   private fun setupUI() {
     setupTextWatchers()
     setupTransferButton()
+    binding.transfer.isEnabled = false
   }
 
   // Observing ViewModel states
@@ -53,10 +54,12 @@ class TransferActivity : AppCompatActivity() {
   }
 
   // Observing loading state to show/hide the loading indicator
+  // The transfer button is disabled while the transfer is being checked
   private fun observeLoadingState() {
     lifecycleScope.launch {
       transferViewModel.isLoading.collect { isLoading ->
         binding.loading.visibility = if (isLoading) android.view.View.VISIBLE else android.view.View.GONE
+        binding.transfer.isEnabled = if (isLoading) false else true
       }
     }
   }
@@ -102,9 +105,13 @@ class TransferActivity : AppCompatActivity() {
   }
 
   // Validate recipient and amount fields to enable/disable the transfer button
+  // The login button is disabled if the recipient field or the amount field is empty.
   private fun validateFields() {
     val recipient = binding.recipient.text.toString()
     val amount = binding.amount.text.toString()
+    if (recipient.isEmpty() || amount.isEmpty()){
+      binding.transfer.isEnabled = false
+    }
     transferViewModel.validateFields(recipient, amount)
   }
 
