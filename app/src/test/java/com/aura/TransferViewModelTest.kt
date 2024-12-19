@@ -26,7 +26,6 @@ class TransferViewModelTest {
 
     private lateinit var viewModel: TransferViewModel
     private val apiService = mockk<ApiService>()
-    private val retrofitClient = mockk<RetrofitClient>()
     private val dispatcher = StandardTestDispatcher()
 
 

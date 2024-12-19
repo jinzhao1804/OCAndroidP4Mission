@@ -1,6 +1,5 @@
 package com.aura.ui.transfer
 
-
 import TransferViewModel
 import android.app.Activity
 import android.content.Intent
@@ -26,102 +25,141 @@ class TransferActivity : AppCompatActivity() {
     binding = ActivityTransferBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
-    val recipientEditText = binding.recipient
-    val amountEditText = binding.amount
-    val transferButton = binding.transfer
-    val loadingIndicator = binding.loading
+    setupUI()
+    observeViewModel()
+  }
 
-    // Observe the ViewModel for button enabling
+  // Setup UI components and event listeners
+  private fun setupUI() {
+    setupTextWatchers()
+    setupTransferButton()
+  }
+
+  // Observing ViewModel states
+  private fun observeViewModel() {
+    observeButtonState()
+    observeLoadingState()
+    observeTransferResult()
+    observeUpdatedBalance()
+  }
+
+  // Observing button enabling state
+  private fun observeButtonState() {
     lifecycleScope.launch {
       transferViewModel.isButtonEnabled.collect { isEnabled ->
-        transferButton.isEnabled = isEnabled
+        binding.transfer.isEnabled = isEnabled
       }
-    }
-
-    // Observe the ViewModel for the loading state
-    lifecycleScope.launch {
-      transferViewModel.isLoading.collect { isLoading ->
-        loadingIndicator.visibility = if (isLoading) android.view.View.VISIBLE else android.view.View.GONE
-      }
-    }
-
-    // Observe the ViewModel for transfer result (success or failure)
-    lifecycleScope.launch {
-      transferViewModel.transferResult.collect { isSuccess ->
-        if (isSuccess != null) {
-          if (isSuccess) {
-            // Transfer successful
-            showToast("Transfer successful")
-            // Fetch updated balance after successful transfer
-            transferViewModel.fetchUpdatedBalance(
-              intent.extras?.getString("currentUser") ?: ""
-            )
-          } else {
-            // Transfer failed
-            showToast("Transfer failed")
-          }
-        }
-      }
-    }
-
-    // Observe the updated balance from ViewModel
-    lifecycleScope.launch {
-      transferViewModel.updatedBalance.collect { updatedBalance ->
-        updatedBalance?.let {
-          val resultIntent = Intent()
-          resultIntent.putExtra("updatedBalance", it)
-          setResult(Activity.RESULT_OK, resultIntent) // Pass updated balance to HomeActivity
-          finish() // Finish the activity and go back to HomeActivity
-        }
-      }
-    }
-
-    // Add TextWatchers to recipient and amount fields
-    recipientEditText.addTextChangedListener(object : TextWatcher {
-      override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
-      override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {
-        transferViewModel.validateFields(recipientEditText.text.toString(), amountEditText.text.toString())
-      }
-      override fun afterTextChanged(editable: Editable?) {}
-    })
-
-    amountEditText.addTextChangedListener(object : TextWatcher {
-      override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
-      override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {
-        transferViewModel.validateFields(recipientEditText.text.toString(), amountEditText.text.toString())
-      }
-      override fun afterTextChanged(editable: Editable?) {}
-    })
-
-    // Set the button listener
-    transferButton.setOnClickListener {
-      val recipient = recipientEditText.text.toString().trim()
-      val amountString = binding.amount.text.toString().trim()
-
-      // Validate fields before making the transfer
-      if (recipient.isEmpty() || amountString.isEmpty()) {
-        showToast("Please enter both recipient and amount")
-        return@setOnClickListener
-      }
-
-      val amount = amountString.toDoubleOrNull()
-      if (amount == null || amount <= 0.0) {
-        showToast("Please enter a valid amount")
-        return@setOnClickListener
-      }
-
-      val currentUser = intent.extras?.getString("currentUser") ?: ""
-      if (currentUser.isEmpty()) {
-        showToast("User ID is missing")
-        return@setOnClickListener
-      }
-
-      // Call the ViewModel's transfer function
-      transferViewModel.transfer(currentUser, recipient, amount)
     }
   }
 
-  fun showToast(text: String){
+  // Observing loading state to show/hide the loading indicator
+  private fun observeLoadingState() {
+    lifecycleScope.launch {
+      transferViewModel.isLoading.collect { isLoading ->
+        binding.loading.visibility = if (isLoading) android.view.View.VISIBLE else android.view.View.GONE
+      }
+    }
+  }
+
+  // Observing transfer result (success or failure)
+  private fun observeTransferResult() {
+    lifecycleScope.launch {
+      transferViewModel.transferResult.collect { isSuccess ->
+        if (isSuccess != null) {
+          showToast(if (isSuccess) "Transfer successful" else "Transfer failed")
+          if (isSuccess) fetchUpdatedBalance()
+        }
+      }
+    }
+  }
+
+  // Observing updated balance
+  private fun observeUpdatedBalance() {
+    lifecycleScope.launch {
+      transferViewModel.updatedBalance.collect { updatedBalance ->
+        updatedBalance?.let {
+          sendUpdatedBalanceBack(it)
+        }
+      }
+    }
+  }
+
+  // Setup TextWatchers for recipient and amount fields
+  private fun setupTextWatchers() {
+    binding.recipient.addTextChangedListener(createTextWatcher())
+    binding.amount.addTextChangedListener(createTextWatcher())
+  }
+
+  // Create a TextWatcher that validates the fields
+  private fun createTextWatcher(): TextWatcher {
+    return object : TextWatcher {
+      override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
+      override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {
+        validateFields()
+      }
+      override fun afterTextChanged(editable: Editable?) {}
+    }
+  }
+
+  // Validate recipient and amount fields to enable/disable the transfer button
+  private fun validateFields() {
+    val recipient = binding.recipient.text.toString()
+    val amount = binding.amount.text.toString()
+    transferViewModel.validateFields(recipient, amount)
+  }
+
+  // Setup transfer button click listener
+  private fun setupTransferButton() {
+    binding.transfer.setOnClickListener {
+      val recipient = binding.recipient.text.toString().trim()
+      val amount = binding.amount.text.toString().trim()
+
+      if (validateTransferInput(recipient, amount)) {
+        transferViewModel.transfer(
+          currentUser = intent.extras?.getString("currentUser") ?: "",
+          recipient = recipient,
+          amount = amount.toDouble()
+        )
+      }
+    }
+  }
+
+  // Validate transfer input before initiating transfer
+  private fun validateTransferInput(recipient: String, amount: String): Boolean {
+    when {
+      recipient.isEmpty() || amount.isEmpty() -> {
+        showToast("Please enter both recipient and amount")
+        return false
+      }
+      amount.toDoubleOrNull() == null || amount.toDouble() <= 0.0 -> {
+        showToast("Please enter a valid amount")
+        return false
+      }
+      intent.extras?.getString("currentUser").isNullOrEmpty() -> {
+        showToast("User ID is missing")
+        return false
+      }
+    }
+    return true
+  }
+
+  // Fetch updated balance after successful transfer
+  private suspend fun fetchUpdatedBalance() {
+    transferViewModel.fetchUpdatedBalance(
+      intent.extras?.getString("currentUser") ?: ""
+    )
+  }
+
+  // Send updated balance back to the previous activity
+  private fun sendUpdatedBalanceBack(updatedBalance: String) {
+    val resultIntent = Intent()
+    resultIntent.putExtra("updatedBalance", updatedBalance)
+    setResult(Activity.RESULT_OK, resultIntent)
+    finish() // Finish and go back to the previous activity
+  }
+
+  // Helper function to show toast messages
+  private fun showToast(text: String) {
     Toast.makeText(this@TransferActivity, text, Toast.LENGTH_LONG).show()
   }
 }
